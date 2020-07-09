@@ -1,6 +1,6 @@
 class AssignsController < ApplicationController
   before_action :authenticate_user!
-
+  before_action :destroy_able_user?, only:[:destroy]
   def create
     team = Team.friendly.find(params[:team_id])
     user = email_reliable?(assign_params) ? User.find_or_create_by_email(assign_params) : nil
@@ -13,7 +13,6 @@ class AssignsController < ApplicationController
   end
 
   def destroy
-    assign = Assign.find(params[:id])
     destroy_message = assign_destroy(assign, assign.user)
 
     redirect_to team_url(params[:team_id]), notice: destroy_message
@@ -37,13 +36,23 @@ class AssignsController < ApplicationController
       I18n.t('views.messages.cannot_delete_member_4_some_reason')
     end
   end
-  
+
   def email_reliable?(address)
     address.match(/\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i)
   end
-  
+
   def set_next_team(assign, assigned_user)
     another_team = Assign.find_by(user_id: assigned_user.id).team
     change_keep_team(assigned_user, another_team) if assigned_user.keep_team_id == assign.team_id
+  end
+
+  ##追記
+  def destroy_able_user?
+    assign = Assign.find(params[:id])
+    if current_user == assign.team.owner || current_user == assign.user
+      return true
+    else
+      redirect_to user_path, notice: "チームから削除できるのは、チームオーナーかユーザー自身だけ"
+    end
   end
 end
