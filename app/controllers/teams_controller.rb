@@ -1,7 +1,6 @@
 class TeamsController < ApplicationController
   before_action :authenticate_user!
   before_action :set_team, only: %i[show edit update destroy]
-
   def index
     @teams = Team.all
   end
@@ -15,11 +14,16 @@ class TeamsController < ApplicationController
     @team = Team.new
   end
 
-  def edit; end
+  def edit
+    unless current_user == @team.owner
+      redirect_to user_path, notice: "チームオーナーじゃないから編集できない"
+    end
+  end
 
   def create
     @team = Team.new(team_params)
     @team.owner = current_user
+
     if @team.save
       @team.invite_member(@team.owner)
       redirect_to @team, notice: I18n.t('views.messages.create_team')
@@ -42,18 +46,18 @@ class TeamsController < ApplicationController
     @team.destroy
     redirect_to teams_url, notice: I18n.t('views.messages.delete_team')
   end
+end
 
-  def dashboard
-    @team = current_user.keep_team_id ? Team.find(current_user.keep_team_id) : current_user.teams.first
-  end
+def dashboard
+  @team = current_user.keep_team_id ? Team.find(current_user.keep_team_id) : current_user.teams.first
+end
 
-  private
+private
 
-  def set_team
-    @team = Team.friendly.find(params[:id])
-  end
+def set_team
+  @team = Team.friendly.find(params[:id])
+end
 
-  def team_params
-    params.fetch(:team, {}).permit %i[name icon icon_cache owner_id keep_team_id]
-  end
+def team_params
+  params.fetch(:team, {}).permit %i[name icon icon_cache owner_id keep_team_id]
 end
