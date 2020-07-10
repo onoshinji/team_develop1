@@ -1,6 +1,6 @@
 class TeamsController < ApplicationController
   before_action :authenticate_user!
-  before_action :set_team, only: %i[show edit update destroy]
+  before_action :set_team, only: %i[show edit update destroy ]
   def index
     @teams = Team.all
   end
@@ -51,6 +51,15 @@ end
 def dashboard
   @team = current_user.keep_team_id ? Team.find(current_user.keep_team_id) : current_user.teams.first
 end
+
+  def owner_authority
+    ##@working_teamはshowアクションでデータを受け取っている。
+    @working_team.owner = current_user
+    @team = @working_team
+    @team.save
+    OwnerMailer.owner_mail(@team.owner).deliver
+    redirect_to team_path(@working_team.id), notice: "チームオーナー権限が変更されました"
+  end
 
 private
 
